@@ -1235,28 +1235,30 @@
       </div>
     </div>
     <div>
-      <div class="contact-form" id="contact-form">
+      <form class="contact-form" id="contact-form" action="https://formsubmit.co/litheshwaran30@gmail.com" method="POST" onsubmit="handleFormSubmit(event)">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" name="_template" value="table">
         <div class="form-row">
           <div class="form-group">
             <label>Name</label>
-            <input type="text" id="cf-name" placeholder="Your name" />
+            <input type="text" id="cf-name" name="name" required placeholder="Your name" />
           </div>
           <div class="form-group">
             <label>Email</label>
-            <input type="email" id="cf-email" placeholder="your@email.com" />
+            <input type="email" id="cf-email" name="email" required placeholder="your@email.com" />
           </div>
         </div>
         <div class="form-group">
           <label>Subject</label>
-          <input type="text" id="cf-subject" placeholder="Internship opportunity / Collaboration" />
+          <input type="text" id="cf-subject" name="_subject" placeholder="Internship opportunity / Collaboration" />
         </div>
         <div class="form-group">
           <label>Message</label>
-          <textarea id="cf-message" placeholder="Tell me about the role or project..."></textarea>
+          <textarea id="cf-message" name="message" required placeholder="Tell me about the role or project..."></textarea>
         </div>
-        <button class="btn btn-primary" onclick="handleFormSubmit()" style="align-self:flex-start;">Send Message →</button>
-        <div id="form-status">✓ Message received! I'll get back to you within 24 hours.</div>
-      </div>
+        <button type="submit" id="cf-submit-btn" class="btn btn-primary" style="align-self:flex-start;">Send Message →</button>
+        <div id="form-status">✓ Message sent! I'll get back to you within 24 hours.</div>
+      </form>
     </div>
   </div>
 </section>
@@ -1368,21 +1370,71 @@
   }
 
   // ── FORM ────────────────────────────────────────────
-  function handleFormSubmit() {
-    const n = document.getElementById('cf-name').value.trim();
-    const e = document.getElementById('cf-email').value.trim();
-    const m = document.getElementById('cf-message').value.trim();
-    if (!n || !e || !m) {
+  async function handleFormSubmit(e) {
+    const form = document.getElementById('contact-form');
+    const nameInput = document.getElementById('cf-name');
+    const emailInput = document.getElementById('cf-email');
+    const subjectInput = document.getElementById('cf-subject');
+    const messageInput = document.getElementById('cf-message');
+    const btn = document.getElementById('cf-submit-btn');
+    const status = document.getElementById('form-status');
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const subject = subjectInput.value.trim() || 'Portfolio Contact Inquiry';
+    const message = messageInput.value.trim();
+
+    if (!name || !email || !message) {
       alert('Please fill in name, email, and message.');
+      if (e) e.preventDefault();
       return;
     }
-    const status = document.getElementById('form-status');
-    status.style.display = 'block';
-    document.getElementById('cf-name').value = '';
-    document.getElementById('cf-email').value = '';
-    document.getElementById('cf-subject').value = '';
-    document.getElementById('cf-message').value = '';
-    setTimeout(() => { status.style.display = 'none'; }, 5000);
+
+    // Browsers block AJAX fetch from local file:// origins (origin: null).
+    // Allow the native browser POST to submit directly to FormSubmit when testing locally:
+    if (window.location.protocol === 'file:') {
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      return; // allow standard form submission
+    }
+
+    // On a live web server (e.g. GitHub Pages / Vercel), use seamless in-page AJAX:
+    if (e) e.preventDefault();
+    btn.disabled = true;
+    const originalBtnText = btn.textContent;
+    btn.textContent = 'Sending...';
+
+    try {
+      const response = await fetch('https://formsubmit.co/ajax/litheshwaran30@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          _subject: `Portfolio Message from ${name}: ${subject}`,
+          message: message,
+          _template: 'table'
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success !== 'false') {
+        status.style.display = 'block';
+        status.textContent = "✓ Message sent! I'll get back to you within 24 hours.";
+        form.reset();
+      } else {
+        form.submit();
+      }
+    } catch (err) {
+      form.submit();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalBtnText;
+      setTimeout(() => { status.style.display = 'none'; }, 6000);
+    }
   }
 </script>
 </body>
